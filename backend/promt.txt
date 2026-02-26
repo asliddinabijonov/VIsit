@@ -1,0 +1,259 @@
+You are a senior Django developer.
+
+Task: Generate a complete `core/models.py` file for a Django 4/5 project based on the following ERD, but FIX the modeling mistakes that are explicitly mentioned.
+
+GENERAL
+-------
+- Use a custom User model extending `AbstractUser`.
+- Use BigAutoField as the default primary key (Django default is fine).
+- Use `settings.AUTH_USER_MODEL` for all foreign keys to User.
+- Use snake_case for field names in the database.
+- Add `__str__` methods for all models.
+- All date+time fields that track creation should use `auto_now_add=True`.
+
+MODELS
+------
+
+1) User (custom user model)
+   - Class: `User(AbstractUser)`
+   - Keep the default `username`, `first_name`, `last_name`, `email`, `password` from AbstractUser.
+   - Extra fields from the ERD:
+       - phone_number: CharField(max_length=50, blank=True, null=True)
+       - country: CharField(max_length=100, blank=True, null=True)
+       - image: ForeignKey to `Image`, on_delete=SET_NULL, null=True, blank=True, related_name="users"
+       - title: CharField(max_length=100, blank=True, null=True)
+       - birthday: DateField(blank=True, null=True)
+       - language: CharField(max_length=50, blank=True, null=True)
+       - role: CharField with CHOICES (not a separate table):
+           Use an inner TextChoices class:
+
+           class Role(models.TextChoices):
+               USER = "USER", "Oddiy foydalanuvchi"
+               HOTEL_OWNER = "HOTEL_OWNER", "Mehmonxona egasi"
+               RESTAURANT_OWNER = "RESTAURANT_OWNER", "Restoran egasi"
+               TAXI_OWNER = "TAXI_OWNER", "Taxi"
+               GUIDE = "GUIDE", "Gid"
+
+           role = models.CharField(
+               max_length=20,
+               choices=Role.choices,
+               default=Role.USER,
+           )
+
+       - language_ref: ForeignKey to `Language`, on_delete=SET_NULL, null=True, blank=True, related_name="users"
+       - viloyat: ForeignKey to `Viloyat`, on_delete=SET_NULL, null=True, blank=True, related_name="users"
+   - __str__ should return username.
+
+   NOTE: We are not using a separate profile table. This custom User model is the single user table.
+   Remember to import AbstractUser and settings at the top.
+
+2) Language
+   - Represents available languages.
+   - Fields:
+       - id: BigAutoField
+       - country: CharField(max_length=100, blank=True, null=True)
+       - language_name: CharField(max_length=100)
+       - image: CharField(max_length=255, blank=True, null=True)  # URL or path
+   - __str__ returns language_name.
+
+3) Image
+   - This corresponds to the `image_id` table in the ERD.
+   - Fields:
+       - id: BigAutoField
+       - image: CharField(max_length=255)  # or ImageField in the future
+   - __str__ returns image.
+
+4) Xususiyat (Feature)
+   - Fields:
+       - id: BigAutoField
+       - turi: CharField(max_length=100)
+   - __str__ returns turi.
+   - NOTE: We will keep a simple ForeignKey from objects to Xususiyat,
+     not a ManyToMany, to stay close to the ERD.
+
+5) TransportTur
+   - Fields:
+       - id: BigAutoField
+       - turi: CharField(max_length=100)
+       - phone_number: CharField(max_length=50, blank=True, null=True)
+   - __str__ returns turi.
+
+6) Viloyat (Region)
+   - IMPORTANT FIX: The ERD currently has `Tarixiyobida_id`, `Restoran_id`,
+     `Mehmonxona_id`, `Transport_id` on the Viloyat table. This is WRONG
+     because it would enforce only one restaurant/hotel/transport per region.
+     In the corrected model Viloyat will NOT contain these foreign keys.
+   - Fields:
+       - id: BigAutoField
+       - name: CharField(max_length=150)
+       - title: CharField(max_length=255, blank=True, null=True)
+       - user: ForeignKey to User, on_delete=SET_NULL, null=True, blank=True, related_name="created_viloyatlar"
+         # the user who created this region
+   - __str__ returns name.
+
+7) TarixiyObida (Historical place)
+   - This corresponds to the `Tarixiyobida_id` table in the ERD.
+   - The ERD already has a Viloyat_id here; that is correct.
+   - Fields:
+       - id: BigAutoField
+       - viloyat: ForeignKey to Viloyat, on_delete=CASCADE, related_name="tarixiy_obidalar"
+       - title: CharField(max_length=255)
+       - description: TextField(blank=True, null=True)
+       - image: ForeignKey to Image, on_delete=SET_NULL, null=True, blank=True, related_name="tarixiy_obidalar"
+       - location: CharField(max_length=255, blank=True, null=True)
+       - date: DateField(blank=True, null=True)
+       - cost: DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+   - __str__ returns title.
+
+8) Restoran
+   - The ERD shows:
+       - user_id
+       - title
+       - description
+       - image_id
+       - location
+       - date
+       - phone number
+       - email
+       - comment_id
+       - reyting_id
+       - xususiyat_id
+       - viloyat_id
+   - IMPORTANT FIXES:
+       - Remove `comment_id` and `reyting_id` from Restoran.
+         Comments and ratings must live in their own tables and point TO the restaurant,
+         not the other way around.
+   - Fields (corrected):
+       - id: BigAutoField
+       - user: ForeignKey to User, on_delete=CASCADE, related_name="restoranlar"
+       - viloyat: ForeignKey to Viloyat, on_delete=CASCADE, related_name="restoranlar"
+       - title: CharField(max_length=255)
+       - description: TextField(blank=True, null=True)
+       - image: ForeignKey to Image, on_delete=SET_NULL, null=True, blank=True, related_name="restoranlar"
+       - location: CharField(max_length=255, blank=True, null=True)
+       - date: DateField(blank=True, null=True)
+       - phone_number: CharField(max_length=50, blank=True, null=True)
+       - email: EmailField(blank=True, null=True)
+       - xususiyat: ForeignKey to Xususiyat, on_delete=SET_NULL, null=True, blank=True, related_name="restoranlar"
+   - __str__ returns title.
+
+9) Mehmonxona (Hotel)
+   - ERD same pattern as Restoran: has user_id, viloyat_id, title, description, image_id, location, date, phone, email, comment_id, reyting_id, xususiyat_id.
+   - IMPORTANT FIXES:
+       - Remove `comment_id` and `reyting_id` here as well.
+   - Fields (corrected):
+       - id: BigAutoField
+       - user: ForeignKey to User, on_delete=CASCADE, related_name="mehmonxonalar"
+       - viloyat: ForeignKey to Viloyat, on_delete=CASCADE, related_name="mehmonxonalar"
+       - title: CharField(max_length=255)
+       - description: TextField(blank=True, null=True)
+       - image: ForeignKey to Image, on_delete=SET_NULL, null=True, blank=True, related_name="mehmonxonalar"
+       - location: CharField(max_length=255, blank=True, null=True)
+       - date: DateField(blank=True, null=True)
+       - phone_number: CharField(max_length=50, blank=True, null=True)
+       - email: EmailField(blank=True, null=True)
+       - xususiyat: ForeignKey to Xususiyat, on_delete=SET_NULL, null=True, blank=True, related_name="mehmonxonalar"
+   - __str__ returns title.
+
+10) Transport
+    - ERD fields:
+        - user_id
+        - title
+        - image_id
+        - date
+        - phone number
+        - email
+        - comment_id
+        - reyting_id
+        - xususiyat_id
+        - transport_tur_id
+        - viloyat_id
+    - IMPORTANT FIXES:
+        - Remove `comment_id` and `reyting_id` from Transport.
+    - Fields (corrected):
+        - id: BigAutoField
+        - user: ForeignKey to User, on_delete=CASCADE, related_name="transportlar"
+        - viloyat: ForeignKey to Viloyat, on_delete=CASCADE, related_name="transportlar"
+        - title: CharField(max_length=255)
+        - image: ForeignKey to Image, on_delete=SET_NULL, null=True, blank=True, related_name="transportlar"
+        - date: DateField(blank=True, null=True)
+        - phone_number: CharField(max_length=50, blank=True, null=True)
+        - email: EmailField(blank=True, null=True)
+        - xususiyat: ForeignKey to Xususiyat, on_delete=SET_NULL, null=True, blank=True, related_name="transportlar"
+        - transport_turi: ForeignKey to TransportTur, on_delete=SET_NULL, null=True, blank=True, related_name="transportlar"
+    - __str__ returns title.
+
+11) Comment
+    - ERD shows: id, user_id, text, created_at. There is no link to which object is being commented.
+      That is a modeling mistake.
+    - We will fix it by adding optional foreign keys to each target entity.
+    - Fields:
+        - id: BigAutoField
+        - user: ForeignKey to User, on_delete=CASCADE, related_name="comments"
+        - text: TextField()
+        - created_at: DateTimeField(auto_now_add=True)
+        - restoran: ForeignKey to Restoran, on_delete=CASCADE, null=True, blank=True, related_name="comments"
+        - mehmonxona: ForeignKey to Mehmonxona, on_delete=CASCADE, null=True, blank=True, related_name="comments"
+        - transport: ForeignKey to Transport, on_delete=CASCADE, null=True, blank=True, related_name="comments"
+        - tarixiy_obida: ForeignKey to TarixiyObida, on_delete=CASCADE, null=True, blank=True, related_name="comments"
+    - Exactly one of [restoran, mehmonxona, transport, tarixiy_obida] should be non-null for a given comment (this can be enforced at the serializer/validation level, not required in the model).
+    - __str__ returns f"Comment #{self.pk}".
+
+12) Reyting (Rating)
+    - ERD shows: id, user_id, value. There is no link to which object is being rated.
+      That is a modeling mistake.
+    - We fix it similarly to Comment.
+    - Fields:
+        - id: BigAutoField
+        - user: ForeignKey to User, on_delete=CASCADE, related_name="reytinglar"
+        - value: PositiveSmallIntegerField()  # will be validated to be in [1, 5] at serializer level
+        - restoran: ForeignKey to Restoran, on_delete=CASCADE, null=True, blank=True, related_name="reytinglar"
+        - mehmonxona: ForeignKey to Mehmonxona, on_delete=CASCADE, null=True, blank=True, related_name="reytinglar"
+        - transport: ForeignKey to Transport, on_delete=CASCADE, null=True, blank=True, related_name="reytinglar"
+        - tarixiy_obida: ForeignKey to TarixiyObida, on_delete=CASCADE, null=True, blank=True, related_name="reytinglar"
+    - In Meta, add unique constraints so each user can rate a given object only once:
+
+        class Meta:
+            constraints = [
+                models.UniqueConstraint(
+                    fields=["user", "restoran"],
+                    name="unique_reyting_user_restoran",
+                    condition=models.Q(restoran__isnull=False),
+                ),
+                models.UniqueConstraint(
+                    fields=["user", "mehmonxona"],
+                    name="unique_reyting_user_mehmonxona",
+                    condition=models.Q(mehmonxona__isnull=False),
+                ),
+                models.UniqueConstraint(
+                    fields=["user", "transport"],
+                    name="unique_reyting_user_transport",
+                    condition=models.Q(transport__isnull=False),
+                ),
+                models.UniqueConstraint(
+                    fields=["user", "tarixiy_obida"],
+                    name="unique_reyting_user_tarixiy_obida",
+                    condition=models.Q(tarixiy_obida__isnull=False),
+                ),
+            ]
+
+    - __str__ returns f"Reyting {self.value} by {self.user}".
+
+OUTPUT
+------
+Return a valid `core/models.py` file with:
+
+- all model classes defined exactly as described,
+- the necessary imports:
+
+    from django.db import models
+    from django.contrib.auth.models import AbstractUser
+    from django.conf import settings
+
+- no extra placeholder code and no syntax errors.
+
+Remember:
+- Remove the wrong foreign keys on Viloyat (to restoran, mehmonxona, transport, tarixiyobida).
+- Remove comment_id and reyting_id from Restoran, Mehmonxona, Transport.
+- Add the correct foreign keys from Comment and Reyting to each of those models.
+- Keep the schema consistent with Django conventions.

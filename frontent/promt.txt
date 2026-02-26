@@ -1,0 +1,187 @@
+Create a responsive frontend in React.js for a tourism website called **“Visit Uzbekistan – Discover the Silk Road”**.
+
+### Tech requirements
+- Use **React 18** functional components with hooks.
+- Use **React Router** for navigation between pages.
+- Use **CSS (or SCSS) modules** or a single global CSS file (no UI frameworks).
+- All texts should be in **Uzbek (Latin)**: “Restoranlar”, “Mehmonxonalar”, “Transport va Gid Xizmati”, “Tarixiy va Mashhur Joylar”, etc.
+- Design must be pixel-like similar to the described layouts below.
+- Use placeholder images with real-looking URLs.
+- Make the layout responsive: good on desktop and mobile.
+
+### Global visual style
+- Background on ALL pages = **same as Home page**: a deep dark **galaxy/space gradient** (dark blue / dark purple) with tiny stars and golden glowing dust.
+- Add **Uzbek ornamental** golden corners at the very top-left, top-right, bottom-left, bottom-right of the page.
+- Main accent color: **gold / orange** for frames, headings, and buttons.
+- Typography:
+  - Headings: elegant serif (e.g. "Playfair Display" or similar).
+  - Body: sans-serif (e.g. "Inter" or "Roboto").
+- Buttons:
+  - Rounded rectangle, gold/orange background, white text.
+  - Hover: slightly brighter, with soft glow (box-shadow).
+
+### App structure (routes)
+Create these main routes with React Router:
+
+1. `/` – `HomePage`
+2. `/region/:slug` – `RegionPage` (viloyat sahifasi)
+3. `/region/:slug/restaurants` – Restaurants list
+4. `/region/:slug/hotels` – Hotels list
+5. `/region/:slug/transport-guides` – Transport & Guide services list
+6. `/region/:slug/sights` – Historical & famous places list
+7. `/restaurants/:id` – Restaurant detail
+8. `/hotels/:id` – Hotel detail
+9. `/transport/:id` – Transport & Guide detail
+10. `/sights/:id` – Sight detail
+
+Use a simple `data.js` file with static arrays for demo content:
+- `regions`
+- `restaurants`
+- `hotels`
+- `transportServices`
+- `sights`
+
+Each item should contain at least: `id`, `name`, `regionSlug`, `image`, `shortDescription`, `address`, `openingHours`, and any specific fields (price, rating, etc.).
+
+### 1) Home page ( `/` )
+Layout based on a **galaxy background with two children in the center and orbiting region names**:
+
+- Top navigation bar:
+  - Left: logo text “Visit Uzbekistan” + subtitle “Discover the Silk Road”.
+  - Center: links – “Destinations”, “Tours”, “About Us”, “Travel Tips”, “Blog”.
+  - Right: main CTA button “Plan Your Trip”.
+- Center of the screen:
+  - Two children in national Uzbek clothes (single large image in the center).
+  - Around them, an **oval orbit animation** with glowing golden lines.
+  - On the orbit, several **oval buttons** with region names:
+    - “Toshkent viloyati”, “Samarqand”, “Buxoro”, “Xiva”, “Andijon”, “Farg‘ona”, “Namangan”, “Sirdaryo”, “Jizzax”, “Navoiy”, “Qashqadaryo”, “Surxondaryo”.
+  - Each region name is inside a glowing oval pill button.
+  - When hovering, pill glows more.
+  - When clicking a region pill, navigate to `/region/:slug`.
+- Bottom center:
+  - Two big buttons:
+    - “Explore Uzbekistan”
+    - “Watch Video”
+  - These buttons also use gold/orange style.
+
+(You can hardcode the children photo as one central image and use CSS to position orbiting region buttons.)
+
+### 2) Region page ( `/region/:slug` )
+Layout similar to **Samarkand mockup with central circle image and four category links**:
+
+- Same galaxy background.
+- Large central **golden circular frame**.
+  - Inside the circle: famous place image of that region (e.g. Registon for Samarqand) and region name text in the middle (`{region.name}`).
+- Around this central circle, place 4 category buttons:
+
+  - Top-right: **“Tarixiy va Mashhur Joylar”**
+  - Bottom-right: **“Transport va Gid Xizmati”**
+  - Top-left: **“Restaran va Kafelar”**
+  - Bottom-left: **“Mehmonxonalar”**
+
+- Each category button:
+  - Gold glowing oval.
+  - Has small icon (e.g. building, car, plate, hotel bed).
+  - On click, navigate to corresponding list page:
+    - Restaurants → `/region/:slug/restaurants`
+    - Hotels → `/region/:slug/hotels`
+    - Transport & Guides → `/region/:slug/transport-guides`
+    - Sights → `/region/:slug/sights`.
+
+### 3) Category list pages
+There are four list pages, but they should share one generic layout component (e.g. `CategoryListPage`) with different title and data.
+
+General layout (similar to the “Restoranlar / Mehmonxonalar / Transport & Gid Xizmati / Tarixiy va Mashhur Joylar” 2x2 mockup):
+
+- Page title on top, centered:
+  - Examples:
+    - “Restoranlar”
+    - “Mehmonxonalar”
+    - “Transport va Gid Xizmati”
+    - “Tarixiy va Mashhur Joylar”
+- Short description text under the title (2–3 lines).
+- Below: grid of **cards** (3 per row on desktop, 1–2 on mobile).
+- Card style:
+  - Dark background with golden border and ornamental corners.
+  - Large image at the top.
+  - Under the image:
+    - Name (bold, white).
+    - 1–2 short info lines (kitchen type, price, rating, etc.).
+    - Address line.
+    - Opening hours line (“Ish vaqtlari: 11:00 – 23:00”).
+  - At the bottom right of each card: orange button **“Batafsil”**.
+  - On click “Batafsil”, go to item detail page (`/restaurants/:id`, `/hotels/:id`, `/transport/:id`, `/sights/:id`).
+
+### 4) Detail pages
+There are four types of detail pages but design is similar. Implement at least these four components:
+
+- `RestaurantDetailPage`
+- `HotelDetailPage`
+- `TransportDetailPage`
+- `SightDetailPage`
+
+Use layout similar to the last set of mockups:
+
+#### Restaurant detail (example: `/restaurants/:id`)
+- Top: big card with:
+  - Large restaurant photo.
+  - Under it: small map preview with a location pin (use another placeholder image).
+  - On the side or below: restaurant name + rating + “Bron qilish” (Reserve) button.
+- Add tabs (use simple buttons that switch visible content):
+  - “Tavsif”
+  - “Menyu”
+  - “Sharhlar”
+- Under the tabs show different dummy text or lists.
+- Show contact info section:
+  - Address text.
+  - Phone number.
+  - Opening hours.
+
+#### Hotel detail
+- Similar layout:
+  - Big hotel room image.
+  - Price per night (e.g. `$85 / kecha`).
+  - Star rating.
+  - Tabs: “Tavsif”, “Xonalar”, “Sharhlar”, “Quvlayliklar”, “Manzil”.
+  - On the right side, booking widget:
+    - Check-in / check-out date inputs.
+    - Number of guests.
+    - “Bron qilish” button.
+
+#### Transport & Guide detail
+- Section for car types (Sedan, Minivan, etc.) with prices.
+- Section for what’s included (Airport transfer, city tour, intercity trip).
+- Map preview with pick-up location.
+- CTA button like “Buyurtma berish”.
+
+#### Sight detail (Historical place)
+- Hero section with main image.
+- Tabs:
+  - “Tavsif”
+  - “Galleriya”
+  - “Sharhlar”
+  - “Manzil”
+- Show practical info:
+  - Ticket price, opening hours, location.
+  - Button “Buyurtma berish” or “Ekskursiya bron qilish”.
+
+### Components & structure suggestions
+Create reusable components:
+- `Layout` – wraps header, footer, and galaxy background.
+- `Navbar`
+- `OrbitRegions` – for Home page region buttons.
+- `RegionCategories` – for central circle + 4 category buttons.
+- `CardList` + `CardItem` – for list pages.
+- `DetailHero` – for each detail page’s large image + title section.
+- `Tabs` – simple generic tabs component.
+
+### Interaction & UX details
+- Smooth scroll for internal anchors.
+- Subtle hover animations on buttons and cards (scale 1.02, soft golden glow).
+- Active link styling in navbar.
+- Mobile:
+  - Navbar collapses into a hamburger menu.
+  - Cards stack in one column.
+  - Orbit on Home page can become simple vertical list of region buttons.
+
+Implement all of this in a single React project, with clear file structure and clean, well-commented code.
