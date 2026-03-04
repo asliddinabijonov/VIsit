@@ -72,6 +72,10 @@ class MehmonxonaSerializer(serializers.ModelSerializer):
 
 
 class TransportSerializer(serializers.ModelSerializer):
+    image_detail = ImageSerializer(source="image", read_only=True)
+    xususiyat_detail = XususiyatSerializer(source="xususiyat", read_only=True)
+    transport_turi_detail = TransportTurSerializer(source="transport_turi", read_only=True)
+
     class Meta:
         model = Transport
         fields = "__all__"
@@ -106,7 +110,7 @@ class TransportFullSerializer(TransportSerializer):
 
 
 class GidFullSerializer(GidSerializer):
-    comments = CommentSerializer(many=True, read_only=True)
+    comments = CommentSerializer(source="gid_comments", many=True, read_only=True)
 
 
 class ViloyatFullSerializer(serializers.ModelSerializer):

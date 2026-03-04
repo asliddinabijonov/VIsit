@@ -10,8 +10,13 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = "__all__"
 
+    def _can_manage_role(self):
+        request = self.context.get("request")
+        return bool(request and request.user and request.user.is_staff)
+
     def create(self, validated_data):
         password = validated_data.pop("password", None)
+        validated_data["role"] = User.Role.USER
         user = User(**validated_data)
         if password:
             user.set_password(password)
@@ -22,6 +27,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     def update(self, instance, validated_data):
         password = validated_data.pop("password", None)
+        if not self._can_manage_role():
+            validated_data.pop("role", None)
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
         if password:
