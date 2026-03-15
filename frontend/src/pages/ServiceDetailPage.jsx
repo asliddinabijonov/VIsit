@@ -4,12 +4,11 @@ import { fetchRegionFull, fetchRegions } from "../api/visitApi";
 import StatusState from "../components/common/StatusState";
 import AppShell from "../components/layout/AppShell";
 import {
-  buildCardBackground,
   buildServiceFacts,
   buildServiceTitle,
   findServiceItem,
   formatDetailText,
-  getPrimaryImage,
+  getAllImages,
   resolveMeta,
   resolveRegionBySlug,
 } from "../utils/region";
@@ -19,6 +18,7 @@ function ServiceDetailPage() {
   const [region, setRegion] = useState(null);
   const [item, setItem] = useState(null);
   const [status, setStatus] = useState("loading");
+  const [imageIndex, setImageIndex] = useState(0);
 
   useEffect(() => {
     let active = true;
@@ -62,6 +62,11 @@ function ServiceDetailPage() {
   const meta = resolveMeta(type);
   const facts = buildServiceFacts(type, item);
   const comments = item?.comments || [];
+  const galleryImages = getAllImages(item);
+
+  useEffect(() => {
+    setImageIndex(0);
+  }, [slug, type, itemKey]);
 
   return (
     <AppShell navMode="region">
@@ -77,7 +82,40 @@ function ServiceDetailPage() {
       {status === "success" && item && region && (
         <section className="detail-page">
           <div className="detail-hero">
-            <div className="detail-visual" style={buildCardBackground(getPrimaryImage(item))} />
+            <div className="detail-visual-wrap">
+              <div className="detail-visual-carousel">
+                <div className="detail-visual-track" style={{ transform: `translateX(-${imageIndex * 100}%)` }}>
+                  {(galleryImages.length > 0 ? galleryImages : [""]).map((image, index) => (
+                    <div key={`${image || "fallback"}-${index}`} className="detail-visual-slide">
+                      {image ? (
+                        <img
+                          src={image}
+                          alt={`${buildServiceTitle(type, item)} ${index + 1}`}
+                          className="detail-visual-image"
+                        />
+                      ) : (
+                        <div className="detail-visual-fallback" />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              {galleryImages.length > 1 && (
+                <div className="detail-thumbs">
+                  {galleryImages.map((image, index) => (
+                    <button
+                      key={`${image}-thumb`}
+                      type="button"
+                      className={`detail-thumb ${index === imageIndex ? "active" : ""}`}
+                      onClick={() => setImageIndex(index)}
+                      aria-label={`Rasm ${index + 1}`}
+                    >
+                      <img src={image} alt={`Kichik rasm ${index + 1}`} className="detail-thumb-image" />
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             <div className="detail-copy">
               <p className="eyebrow">
                 {region.name} / {meta.title}

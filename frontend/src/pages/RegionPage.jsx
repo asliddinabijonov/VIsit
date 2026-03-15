@@ -64,7 +64,6 @@ function RegionPage() {
           </div>
 
           <div className="region-scene-copy">
-            <p className="eyebrow">{region.name}</p>
             <h1>{region.name}</h1>
             <p>{formatDetailText(region.title, "Bu viloyat uchun tavsif hali qo'shilmagan.")}</p>
           </div>

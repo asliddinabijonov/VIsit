@@ -81,10 +81,6 @@ function HomePage() {
         <div className="hero-copy-card">
           <p className="hero-kicker">Cosmic Silk Road</p>
           <h1>O'zbekiston bo'ylab sayohatni yangi vizual uslubda boshlang</h1>
-          <p>
-            Markaziy rasm almashtirildi, ellips halqalar saqlandi va viloyatlar katta orbit bo'ylab doimiy aylanishda
-            ko'rsatiladi.
-          </p>
         </div>
 
         <div className="hero-actions">

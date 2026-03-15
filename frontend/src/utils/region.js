@@ -80,6 +80,32 @@ export function getPrimaryImage(entity) {
   return "";
 }
 
+export function getAllImages(entity) {
+  if (!entity) {
+    return [];
+  }
+
+  const urls = [];
+
+  if (entity.image_detail?.image) {
+    urls.push(normalizeMediaUrl(entity.image_detail.image));
+  }
+
+  if (entity.image) {
+    urls.push(normalizeMediaUrl(entity.image));
+  }
+
+  if (Array.isArray(entity.images_detail)) {
+    entity.images_detail.forEach((entry) => {
+      if (entry?.image) {
+        urls.push(normalizeMediaUrl(entry.image));
+      }
+    });
+  }
+
+  return [...new Set(urls.filter(Boolean))];
+}
+
 export function buildHeroBackground(image) {
   const mediaUrl = normalizeMediaUrl(image);
 
@@ -186,6 +212,7 @@ export function buildServiceFacts(type, item) {
 
   if (type === "restaurants" || type === "hotels") {
     return [
+      { label: "Description", value: formatDetailText(item.description, "Kiritilmagan") },
       { label: "Manzil", value: formatDetailText(item.location, "Kiritilmagan") },
       { label: "Telefon", value: formatDetailText(item.phone_number, "Kiritilmagan") },
       { label: "Email", value: formatDetailText(item.email, "Kiritilmagan") },
@@ -201,6 +228,7 @@ export function buildServiceFacts(type, item) {
 
   if (type === "guides") {
     return [
+      { label: "Description", value: formatDetailText(item.description, "Kiritilmagan") },
       { label: "Manzil", value: formatDetailText(item.location, "Kiritilmagan") },
       { label: "Sana", value: formatDetailText(item.date, "Kiritilmagan") },
       { label: "Narx", value: item.cost ? String(item.cost) : "Kiritilmagan" },
@@ -209,6 +237,7 @@ export function buildServiceFacts(type, item) {
 
   if (type === "tours" && item.kind === "transport") {
     return [
+      { label: "Description", value: formatDetailText(item.description, "Kiritilmagan") },
       { label: "Telefon", value: formatDetailText(item.phone_number, "Kiritilmagan") },
       { label: "Email", value: formatDetailText(item.email, "Kiritilmagan") },
       { label: "Sana", value: formatDetailText(item.date, "Kiritilmagan") },
@@ -217,6 +246,7 @@ export function buildServiceFacts(type, item) {
 
   if (type === "tours" && item.kind === "guide") {
     return [
+      { label: "Description", value: formatDetailText(item.description, "Kiritilmagan") },
       { label: "Telefon", value: formatDetailText(item.phone_number, "Kiritilmagan") },
       { label: "Til", value: formatDetailText(item.language, "Kiritilmagan") },
       { label: "Davlat", value: formatDetailText(item.country, "Kiritilmagan") },
