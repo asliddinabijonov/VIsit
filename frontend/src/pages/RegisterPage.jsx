@@ -43,9 +43,7 @@ function RegisterPage() {
         <div className="register-copy">
           <p className="eyebrow">Join Visit Uzbekistan</p>
           <h1>Ro'yxatdan o'tish</h1>
-          <p>
-            Foydalanuvchi, mehmonxona egasi, restoran egasi, taxi yoki gid sifatida tizimga qo'shilishingiz mumkin.
-          </p>
+          <h1>Ro'yxatdan o'tish</h1>
           <Link to="/" className="button button-ghost small">
             Home ga qaytish
           </Link>
