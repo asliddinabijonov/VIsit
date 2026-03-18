@@ -2,7 +2,7 @@ import Navbar from "./Navbar";
 
 function AppShell({ children, navMode = "home" }) {
   return (
-    <div className="app-shell">
+    <div className={`app-shell app-shell-${navMode}`}>
       <div className="stars stars-a" />
       <div className="stars stars-b" />
       <div className="glow glow-left" />

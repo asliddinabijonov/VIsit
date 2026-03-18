@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { createUser } from "../api/visitApi";
 import AppShell from "../components/layout/AppShell";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const initialForm = {
   username: "",
@@ -12,6 +13,7 @@ const initialForm = {
 };
 
 function RegisterPage() {
+  const { t } = useLanguage();
   const [form, setForm] = useState(initialForm);
   const [status, setStatus] = useState("idle");
   const [message, setMessage] = useState("");
@@ -29,7 +31,7 @@ function RegisterPage() {
     try {
       await createUser(form);
       setStatus("success");
-      setMessage("Ro'yxatdan o'tish muvaffaqiyatli yakunlandi.");
+      setMessage(t("register.success"));
       setForm(initialForm);
     } catch (error) {
       setStatus("error");
@@ -41,38 +43,37 @@ function RegisterPage() {
     <AppShell navMode="region">
       <section className="register-page">
         <div className="register-copy">
-          <p className="eyebrow">Join Visit Uzbekistan</p>
-          <h1>Ro'yxatdan o'tish</h1>
-          <h1>Ro'yxatdan o'tish</h1>
+          <p className="eyebrow">{t("register.eyebrow")}</p>
+          <h1>{t("register.title")}</h1>
           <Link to="/" className="button button-ghost small">
-            Home ga qaytish
+            {t("register.backHome")}
           </Link>
         </div>
 
         <form className="register-form" onSubmit={handleSubmit}>
           <label>
-            Username
+            {t("register.username")}
             <input name="username" value={form.username} onChange={handleChange} required />
           </label>
           <label>
-            Ism
+            {t("register.firstName")}
             <input name="first_name" value={form.first_name} onChange={handleChange} />
           </label>
           <label>
-            Familiya
+            {t("register.lastName")}
             <input name="last_name" value={form.last_name} onChange={handleChange} />
           </label>
           <label>
-            Email
+            {t("register.email")}
             <input type="email" name="email" value={form.email} onChange={handleChange} />
           </label>
           <label>
-            Parol
+            {t("register.password")}
             <input type="password" name="password" value={form.password} onChange={handleChange} required />
           </label>
 
           <button type="submit" className="button button-primary" disabled={status === "loading"}>
-            {status === "loading" ? "Yuborilmoqda..." : "Register"}
+            {status === "loading" ? t("register.submitting") : t("register.submit")}
           </button>
 
           {message && <p className={`form-message ${status}`}>{message}</p>}

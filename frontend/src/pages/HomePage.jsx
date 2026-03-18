@@ -3,12 +3,23 @@ import { useNavigate } from "react-router-dom";
 import { fetchRegions } from "../api/visitApi";
 import StatusState from "../components/common/StatusState";
 import AppShell from "../components/layout/AppShell";
+import { useLanguage } from "../i18n/LanguageContext";
 import { getOrbitRegions, slugifyRegionName } from "../utils/region";
 
 function HomePage() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [regions, setRegions] = useState([]);
   const [status, setStatus] = useState("loading");
+
+  useEffect(() => {
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, []);
 
   useEffect(() => {
     let active = true;
@@ -49,12 +60,12 @@ function HomePage() {
             <div className="home-image-ring home-image-ring-a" />
             <div className="home-image-ring home-image-ring-b" />
             <div className="home-image-frame">
-              <img className="home-image" src="/images/children.png" alt="Uzbekistan cultural travel" />
+              <img className="home-image" src="/images/children.png" alt={t("home.imageAlt")} />
             </div>
           </div>
 
           {status === "success" && (
-            <div className="orbit-regions-layer" aria-label="Viloyatlar harakati">
+            <div className="orbit-regions-layer" aria-label={t("home.orbitLabel")}>
               {orbitRegions.map((region) => (
                 <button
                   key={region.id}
@@ -71,27 +82,20 @@ function HomePage() {
         </div>
 
         {status === "loading" && (
-          <StatusState title="Yuklanmoqda" description="Viloyatlar ro'yxati backenddan olinmoqda." />
+          <StatusState title={t("home.loadingTitle")} description={t("home.loadingDescription")} />
         )}
 
-        {status === "error" && (
-          <StatusState title="Xatolik" description="Backend bilan ulanishda muammo bo'ldi." />
-        )}
-
-        <div className="hero-copy-card">
-          <p className="hero-kicker">Cosmic Silk Road</p>
-          <h1>O'zbekiston bo'ylab sayohatni yangi vizual uslubda boshlang</h1>
-        </div>
+        {status === "error" && <StatusState title={t("home.errorTitle")} description={t("home.errorDescription")} />}
 
         <div className="hero-actions">
           <button type="button" className="button button-primary large" onClick={() => navigate("/register")}>
-            Explore Uzbekistan
+            {t("home.primaryCta")}
           </button>
           <button type="button" className="button button-dark large" onClick={() => navigate("/register")}>
             <span className="play-icon" aria-hidden="true">
               &gt;
             </span>
-            Start Journey
+            {t("home.secondaryCta")}
           </button>
         </div>
       </section>

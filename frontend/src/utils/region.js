@@ -1,22 +1,3 @@
-const serviceMeta = {
-  restaurants: {
-    title: "Restaurants",
-    description: "Hududdagi restoranlar ro'yxati va ularning asosiy ma'lumotlari.",
-  },
-  hotels: {
-    title: "Hotels",
-    description: "Mehmonxonalar ro'yxati, manzil va bog'lanish ma'lumotlari.",
-  },
-  tours: {
-    title: "Tours & Activities",
-    description: "Transport va gid xizmatlari bir joyda jamlandi.",
-  },
-  guides: {
-    title: "Travel Guides",
-    description: "Tarixiy obyektlar va mashhur manzillar bo'yicha batafsil ma'lumot.",
-  },
-};
-
 export function slugifyRegionName(name = "") {
   return name
     .toLowerCase()
@@ -40,8 +21,27 @@ export function findRegionBySlug(regions = [], slug) {
 
 export const resolveRegionBySlug = findRegionBySlug;
 
-export function resolveMeta(type) {
-  return serviceMeta[type] || serviceMeta.restaurants;
+export function resolveMeta(type, t) {
+  const meta = {
+    restaurants: {
+      title: t("services.restaurantsTitle"),
+      description: t("services.restaurantsDescription"),
+    },
+    hotels: {
+      title: t("services.hotelsTitle"),
+      description: t("services.hotelsDescription"),
+    },
+    tours: {
+      title: t("services.toursTitle"),
+      description: t("services.toursDescription"),
+    },
+    guides: {
+      title: t("services.guidesTitle"),
+      description: t("services.guidesDescription"),
+    },
+  };
+
+  return meta[type] || meta.restaurants;
 }
 
 export function normalizeMediaUrl(path = "") {
@@ -54,6 +54,70 @@ export function normalizeMediaUrl(path = "") {
   }
 
   return `/media/${path}`;
+}
+
+export function getVideoUrl(entity) {
+  if (!entity) {
+    return "";
+  }
+
+  if (entity.video_url) {
+    return entity.video_url;
+  }
+
+  if (entity.video) {
+    return normalizeMediaUrl(entity.video);
+  }
+
+  return "";
+}
+
+export function getPosterUrl(entity) {
+  if (!entity?.video_poster) {
+    return "";
+  }
+
+  return normalizeMediaUrl(entity.video_poster);
+}
+
+export function getVideoTypeLabel(videoType, t) {
+  if (videoType === "360") {
+    return t("detail.video360");
+  }
+
+  return t("detail.standardVideo");
+}
+
+export function getProjectionLabel(projection, t) {
+  if (projection === "equirectangular") {
+    return t("detail.equirectangular");
+  }
+
+  if (projection === "cubemap") {
+    return t("detail.cubemap");
+  }
+
+  if (projection === "fisheye") {
+    return t("detail.fisheye");
+  }
+
+  return t("services.notProvided");
+}
+
+export function getStereoModeLabel(mode, t) {
+  if (mode === "left_right") {
+    return t("detail.leftRight");
+  }
+
+  if (mode === "top_bottom") {
+    return t("detail.topBottom");
+  }
+
+  if (mode === "mono") {
+    return t("detail.mono");
+  }
+
+  return t("services.notProvided");
 }
 
 export function getPrimaryImage(entity) {
@@ -205,66 +269,65 @@ export function formatDetailText(value, fallback) {
   return value && String(value).trim() ? value : fallback;
 }
 
-export function buildServiceFacts(type, item) {
+export function buildServiceFacts(type, item, t) {
   if (!item) {
     return [];
   }
 
   if (type === "restaurants" || type === "hotels") {
     return [
-      { label: "Description", value: formatDetailText(item.description, "Kiritilmagan") },
-      { label: "Manzil", value: formatDetailText(item.location, "Kiritilmagan") },
-      { label: "Telefon", value: formatDetailText(item.phone_number, "Kiritilmagan") },
-      { label: "Email", value: formatDetailText(item.email, "Kiritilmagan") },
+      { label: t("services.description"), value: formatDetailText(item.description, t("services.notProvided")) },
+      { label: t("services.location"), value: formatDetailText(item.location, t("services.notProvided")) },
+      { label: t("services.phone"), value: formatDetailText(item.phone_number, t("services.notProvided")) },
+      { label: t("services.email"), value: formatDetailText(item.email, t("services.notProvided")) },
       {
-        label: "Xususiyatlar",
+        label: t("services.features"),
         value:
           item.xususiyat_detail?.length > 0
             ? item.xususiyat_detail.map((feature) => feature.turi).join(", ")
-            : "Kiritilmagan",
+            : t("services.notProvided"),
       },
     ];
   }
 
   if (type === "guides") {
     return [
-      { label: "Description", value: formatDetailText(item.description, "Kiritilmagan") },
-      { label: "Manzil", value: formatDetailText(item.location, "Kiritilmagan") },
-      { label: "Sana", value: formatDetailText(item.date, "Kiritilmagan") },
-      { label: "Narx", value: item.cost ? String(item.cost) : "Kiritilmagan" },
+      { label: t("services.location"), value: formatDetailText(item.location, t("services.notProvided")) },
+      { label: t("services.date"), value: formatDetailText(item.date, t("services.notProvided")) },
+      { label: t("services.price"), value: item.cost ? String(item.cost) : t("services.notProvided") },
     ];
   }
 
   if (type === "tours" && item.kind === "transport") {
     return [
-      { label: "Description", value: formatDetailText(item.description, "Kiritilmagan") },
-      { label: "Telefon", value: formatDetailText(item.phone_number, "Kiritilmagan") },
-      { label: "Email", value: formatDetailText(item.email, "Kiritilmagan") },
-      { label: "Sana", value: formatDetailText(item.date, "Kiritilmagan") },
+      { label: t("services.description"), value: formatDetailText(item.description, t("services.notProvided")) },
+      { label: t("services.phone"), value: formatDetailText(item.phone_number, t("services.notProvided")) },
+      { label: t("services.email"), value: formatDetailText(item.email, t("services.notProvided")) },
+      { label: t("services.date"), value: formatDetailText(item.date, t("services.notProvided")) },
     ];
   }
 
   if (type === "tours" && item.kind === "guide") {
     return [
-      { label: "Description", value: formatDetailText(item.description, "Kiritilmagan") },
-      { label: "Telefon", value: formatDetailText(item.phone_number, "Kiritilmagan") },
-      { label: "Til", value: formatDetailText(item.language, "Kiritilmagan") },
-      { label: "Davlat", value: formatDetailText(item.country, "Kiritilmagan") },
-      { label: "Tug'ilgan sana", value: formatDetailText(item.birthday, "Kiritilmagan") },
+      { label: t("services.description"), value: formatDetailText(item.description, t("services.notProvided")) },
+      { label: t("services.phone"), value: formatDetailText(item.phone_number, t("services.notProvided")) },
+      { label: t("services.language"), value: formatDetailText(item.language, t("services.notProvided")) },
+      { label: t("services.country"), value: formatDetailText(item.country, t("services.notProvided")) },
+      { label: t("services.birthday"), value: formatDetailText(item.birthday, t("services.notProvided")) },
     ];
   }
 
   return [];
 }
 
-export function buildServiceTitle(type, item) {
+export function buildServiceTitle(type, item, t) {
   if (type === "tours" && item?.kind === "transport") {
-    return item.title || "Transport xizmati";
+    return item.title || t("detail.transportFallback");
   }
 
   if (type === "tours" && item?.kind === "guide") {
-    return item.title || "Gid xizmati";
+    return item.title || t("detail.guideFallback");
   }
 
-  return item?.title || "Batafsil ma'lumot";
+  return item?.title || t("detail.genericFallback");
 }

@@ -148,7 +148,47 @@ class ImageAdmin(admin.ModelAdmin):
 admin.site.register(Xususiyat)
 admin.site.register(TransportTur)
 admin.site.register(Viloyat)
-admin.site.register(TarixiyObida)
+
+
+@admin.register(TarixiyObida)
+class TarixiyObidaAdmin(admin.ModelAdmin):
+    list_display = ("id", "title", "viloyat", "video_type", "vr_ready")
+    list_filter = ("viloyat", "video_type", "vr_ready", "stereo_mode")
+    search_fields = ("title", "location", "description", "video_url")
+    filter_horizontal = ("images",)
+    fieldsets = (
+        (
+            "Asosiy ma'lumotlar",
+            {
+                "fields": (
+                    "viloyat",
+                    "title",
+                    "description",
+                    "images",
+                    "location",
+                    "date",
+                    "cost",
+                )
+            },
+        ),
+        (
+            "Video va VR",
+            {
+                "fields": (
+                    "video",
+                    "video_url",
+                    "video_poster",
+                    "video_type",
+                    "video_projection",
+                    "stereo_mode",
+                    "vr_ready",
+                    "video_duration_seconds",
+                )
+            },
+        ),
+    )
+
+
 admin.site.register(Restoran)
 admin.site.register(Mehmonxona)
 admin.site.register(Transport)

@@ -3,20 +3,22 @@ import { useNavigate, useParams } from "react-router-dom";
 import { fetchRegions } from "../api/visitApi";
 import StatusState from "../components/common/StatusState";
 import AppShell from "../components/layout/AppShell";
+import { useLanguage } from "../i18n/LanguageContext";
 import { buildHeroBackground, findRegionBySlug, formatDetailText } from "../utils/region";
-
-const options = [
-  { key: "restaurants", title: "Restaurants", action: "Explore Dining", icon: "R", position: "left-top" },
-  { key: "hotels", title: "Hotels", action: "Find Stays", icon: "H", position: "right-top" },
-  { key: "tours", title: "Tours & Activities", action: "Discover Experiences", icon: "T", position: "left-bottom" },
-  { key: "guides", title: "Travel Guides", action: "Plan Your Trip", icon: "G", position: "right-bottom" },
-];
 
 function RegionPage() {
   const { slug = "" } = useParams();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [region, setRegion] = useState(null);
   const [status, setStatus] = useState("loading");
+
+  const options = [
+    { key: "restaurants", title: t("region.restaurantsTitle"), action: t("region.restaurantsAction"), icon: "R", position: "left-top" },
+    { key: "hotels", title: t("region.hotelsTitle"), action: t("region.hotelsAction"), icon: "H", position: "right-top" },
+    { key: "tours", title: t("region.toursTitle"), action: t("region.toursAction"), icon: "T", position: "left-bottom" },
+    { key: "guides", title: t("region.guidesTitle"), action: t("region.guidesAction"), icon: "G", position: "right-bottom" },
+  ];
 
   useEffect(() => {
     let active = true;
@@ -46,11 +48,11 @@ function RegionPage() {
     <AppShell navMode="region">
       {status !== "success" && (
         <StatusState
-          title={status === "error" ? "Xatolik" : "Ma'lumot topilmadi"}
+          title={status === "error" ? t("region.errorTitle") : t("region.emptyTitle")}
           description={
             status === "error"
-              ? "Viloyat ma'lumotlarini backenddan olib bo'lmadi."
-              : "Tanlangan viloyat mavjud emas yoki hali backendga qo'shilmagan."
+              ? t("region.errorDescription")
+              : t("region.emptyDescription")
           }
         />
       )}
@@ -65,7 +67,7 @@ function RegionPage() {
 
           <div className="region-scene-copy">
             <h1>{region.name}</h1>
-            <p>{formatDetailText(region.title, "Bu viloyat uchun tavsif hali qo'shilmagan.")}</p>
+            <p>{formatDetailText(region.title, t("region.descriptionFallback"))}</p>
           </div>
 
           {options.map((option) => (
@@ -81,8 +83,8 @@ function RegionPage() {
             </button>
           ))}
 
-          <div className="bottom-label left-label">Cultural Heritage</div>
-          <div className="bottom-label right-label">Travel Tips</div>
+          <div className="bottom-label left-label">{t("region.heritage")}</div>
+          <div className="bottom-label right-label">{t("region.travelTips")}</div>
         </section>
       )}
     </AppShell>

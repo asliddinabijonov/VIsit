@@ -76,6 +76,20 @@ class Gid(models.Model):
 
 
 class TarixiyObida(models.Model):
+    class VideoType(models.TextChoices):
+        STANDARD = "standard", "Oddiy video"
+        VIDEO_360 = "360", "360 video"
+
+    class VideoProjection(models.TextChoices):
+        EQUIRECTANGULAR = "equirectangular", "Equirectangular"
+        CUBEMAP = "cubemap", "Cubemap"
+        FISHEYE = "fisheye", "Fisheye"
+
+    class StereoMode(models.TextChoices):
+        MONO = "mono", "Mono"
+        LEFT_RIGHT = "left_right", "Left-Right"
+        TOP_BOTTOM = "top_bottom", "Top-Bottom"
+
     viloyat = models.ForeignKey(
         Viloyat,
         on_delete=models.CASCADE,
@@ -91,9 +105,56 @@ class TarixiyObida(models.Model):
     location = models.CharField(max_length=255, blank=True, null=True)
     date = models.DateField(blank=True, null=True)
     cost = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    video = models.FileField(
+        upload_to="videos/tarixiy_obidalar/",
+        blank=True,
+        null=True,
+    )
+    video_url = models.URLField(blank=True, null=True)
+    video_poster = models.ImageField(
+        upload_to="videos/posters/",
+        blank=True,
+        null=True,
+    )
+    video_type = models.CharField(
+        max_length=20,
+        choices=VideoType.choices,
+        default=VideoType.STANDARD,
+    )
+    video_projection = models.CharField(
+        max_length=30,
+        choices=VideoProjection.choices,
+        blank=True,
+        null=True,
+    )
+    stereo_mode = models.CharField(
+        max_length=20,
+        choices=StereoMode.choices,
+        default=StereoMode.MONO,
+    )
+    vr_ready = models.BooleanField(default=False)
+    video_duration_seconds = models.PositiveIntegerField(blank=True, null=True)
 
     def __str__(self):
         return self.title
+
+    def clean(self):
+        super().clean()
+
+        if self.video and self.video_url:
+            raise ValidationError(
+                {"video_url": "Faqat bitta video manbasini kiriting: fayl yoki URL."}
+            )
+
+        if self.vr_ready and self.video_type != self.VideoType.VIDEO_360:
+            raise ValidationError(
+                {"vr_ready": "VR rejim faqat 360 video uchun yoqilishi mumkin."}
+            )
+
+        if self.video_type == self.VideoType.VIDEO_360 and not self.video_projection:
+            raise ValidationError(
+                {"video_projection": "360 video uchun projection turi majburiy."}
+            )
 
 
 class Restoran(models.Model):

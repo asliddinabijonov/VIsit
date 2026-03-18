@@ -1,9 +1,48 @@
-import { Link } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 function Navbar({ mode }) {
-  const homeLinks = ["Destinations", "Tours", "About Us", "Travel Tips", "Blog"];
-  const regionLinks = ["Destinations", "Experiences", "About Us", "Contact"];
+  const navigate = useNavigate();
+  const { language, languages, setLanguage, t } = useLanguage();
+  const [authUser, setAuthUser] = useState("");
+  const homeLinks = [
+    { label: t("nav.destinations"), to: "/destinations" },
+    { label: t("nav.tours"), to: "/experiences" },
+    { label: t("nav.about"), to: "/about" },
+    { label: t("nav.travelTips"), to: "/contact" },
+    { label: t("nav.blog"), to: "/about" },
+  ];
+  const regionLinks = [
+    { label: t("nav.destinations"), to: "/destinations" },
+    { label: t("nav.experiences"), to: "/experiences" },
+    { label: t("nav.about"), to: "/about" },
+    { label: t("nav.contact"), to: "/contact" },
+  ];
   const links = mode === "home" ? homeLinks : regionLinks;
+
+  useEffect(() => {
+    const syncAuthUser = () => {
+      setAuthUser(window.localStorage.getItem("visit-auth-username") || "");
+    };
+
+    syncAuthUser();
+    window.addEventListener("storage", syncAuthUser);
+    window.addEventListener("visit-auth-changed", syncAuthUser);
+
+    return () => {
+      window.removeEventListener("storage", syncAuthUser);
+      window.removeEventListener("visit-auth-changed", syncAuthUser);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    window.localStorage.removeItem("visit-access-token");
+    window.localStorage.removeItem("visit-refresh-token");
+    window.localStorage.removeItem("visit-auth-username");
+    window.dispatchEvent(new Event("visit-auth-changed"));
+    navigate("/");
+  };
 
   return (
     <header className="navbar">
@@ -13,30 +52,64 @@ function Navbar({ mode }) {
         </span>
         <span>
           <strong>Visit UZBEKISTAN</strong>
-          <em>Discover the Silk Road</em>
+          <em>{t("nav.brandTagline")}</em>
         </span>
       </Link>
 
       <nav className="nav-links">
         {links.map((item) => (
-          <a key={item} href="#!" onClick={(event) => event.preventDefault()}>
-            {item}
-          </a>
+          <Link key={item.label} to={item.to}>
+            {item.label}
+          </Link>
         ))}
       </nav>
 
       <div className="nav-actions">
-        {mode === "home" ? (
+        <label className="language-select-wrap">
+          <span className="sr-only">{t("nav.language")}</span>
+          <select
+            className="language-select"
+            value={language}
+            onChange={(event) => setLanguage(event.target.value)}
+            aria-label={t("nav.language")}
+          >
+            {languages.map((item) => (
+              <option key={item.code} value={item.code}>
+                {item.flag} {item.name}
+              </option>
+            ))}
+          </select>
+        </label>
+        {authUser ? (
+          <div className="nav-user-menu">
+            <div className="nav-user-chip">
+              <div className="nav-user-avatar" aria-hidden="true">
+                {authUser.slice(0, 1).toUpperCase()}
+              </div>
+              <div className="nav-user-copy">
+                <strong>{authUser}</strong>
+              </div>
+            </div>
+            <div className="nav-user-dropdown">
+              <Link to="/profile" className="nav-user-option">
+                Profil
+              </Link>
+              <button type="button" className="nav-user-option danger" onClick={handleLogout}>
+                Logout
+              </button>
+            </div>
+          </div>
+        ) : mode === "home" ? (
           <Link to="/register" className="button button-primary">
-            Plan Your Trip
+            {t("nav.planTrip")}
           </Link>
         ) : (
           <>
-            <button type="button" className="button button-ghost small">
-              Sign In
-            </button>
+            <Link to="/login" className="button button-ghost small">
+              {t("nav.signIn")}
+            </Link>
             <Link to="/register" className="button button-primary small">
-              Register
+              {t("nav.register")}
             </Link>
           </>
         )}

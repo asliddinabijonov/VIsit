@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { fetchRegionFull, fetchRegions } from "../api/visitApi";
 import StatusState from "../components/common/StatusState";
 import AppShell from "../components/layout/AppShell";
+import { useLanguage } from "../i18n/LanguageContext";
 import {
   buildCardBackground,
   getItemKey,
@@ -16,6 +17,7 @@ function RegionServicesPage() {
   const { slug = "", type = "restaurants" } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [region, setRegion] = useState(null);
   const [content, setContent] = useState(null);
   const [status, setStatus] = useState("loading");
@@ -61,7 +63,7 @@ function RegionServicesPage() {
     };
   }, [slug, type]);
 
-  const shortText = (value, fallback = "Yo'q") => {
+  const shortText = (value, fallback = t("services.noValue")) => {
     const normalized = String(value || "").replace(/\s+/g, " ").trim();
 
     if (!normalized) {
@@ -77,14 +79,14 @@ function RegionServicesPage() {
       : "";
 
     const rows = [
-      { label: "Description", value: shortText(item?.description) },
-      { label: "Joylashuv", value: shortText(region?.name, "Kiritilmagan") },
-      { label: "Telefon", value: shortText(item?.phone_number, "Kiritilmagan") },
-      { label: "Vaqti", value: shortText(item?.working_time || item?.schedule || item?.date) },
+      { label: t("services.description"), value: shortText(item?.description) },
+      { label: t("services.location"), value: shortText(region?.name, t("services.notProvided")) },
+      { label: t("services.phone"), value: shortText(item?.phone_number, t("services.notProvided")) },
+      { label: t("services.time"), value: shortText(item?.working_time || item?.schedule || item?.date) },
     ];
 
     if (features) {
-      rows.push({ label: "Imkoniyatlari", value: shortText(features) });
+      rows.push({ label: t("services.features"), value: shortText(features) });
     }
 
     return rows;
@@ -133,7 +135,7 @@ function RegionServicesPage() {
     }
 
     return (
-      <div className="carousel-controls bottom" aria-label="Ro'yxat boshqaruvi">
+      <div className="carousel-controls bottom" aria-label={t("services.details")}>
         <button type="button" className="carousel-arrow" onClick={() => movePrev(length, setter)}>
           &#8249;
         </button>
@@ -149,14 +151,14 @@ function RegionServicesPage() {
     );
   };
 
-  const meta = resolveMeta(type);
+  const meta = resolveMeta(type, t);
 
   return (
     <AppShell navMode="region">
       {status !== "success" && (
         <StatusState
-          title={status === "error" ? "Xatolik" : "Ma'lumot topilmadi"}
-          description={status === "error" ? "Xizmatlar backenddan yuklanmadi." : "Bu viloyat uchun ma'lumot topilmadi."}
+          title={status === "error" ? t("services.statusErrorTitle") : t("services.statusEmptyTitle")}
+          description={status === "error" ? t("services.statusErrorDescription") : t("services.statusEmptyDescription")}
         />
       )}
 
@@ -193,7 +195,7 @@ function RegionServicesPage() {
                             className="button button-primary small"
                             onClick={() => navigate(`/region/${slug}/services/${type}/${getItemKey(type, item)}`)}
                           >
-                            Batafsil
+                            {t("services.details")}
                           </button>
                         </div>
                       </article>
@@ -202,7 +204,7 @@ function RegionServicesPage() {
                   {renderControls(mainItems.length, mainIndex, setMainIndex)}
                 </>
               ) : (
-                <StatusState title="Ro'yxat bo'sh" description="Bu bo'lim uchun ma'lumot hali qo'shilmagan." />
+                <StatusState title={t("services.listEmptyTitle")} description={t("services.listEmptyDescription")} />
               )}
             </>
           )}
@@ -210,8 +212,8 @@ function RegionServicesPage() {
           {type === "tours" && (
             <div className="service-sections">
               <div className="services-subheading">
-                <h2>Transportlar</h2>
-                <p>Hududdagi transport xizmatlari.</p>
+                <h2>{t("services.transportsTitle")}</h2>
+                <p>{t("services.transportsDescription")}</p>
               </div>
               {tourTransports.length > 0 ? (
                 <>
@@ -235,7 +237,7 @@ function RegionServicesPage() {
                               navigate(`/region/${slug}/services/${type}/${getItemKey(type, { ...item, kind: "transport" })}`)
                             }
                           >
-                            Batafsil
+                            {t("services.details")}
                           </button>
                         </div>
                       </article>
@@ -244,12 +246,15 @@ function RegionServicesPage() {
                   {renderControls(tourTransports.length, transportIndex, setTransportIndex)}
                 </>
               ) : (
-                <StatusState title="Transportlar yo'q" description="Bu viloyat uchun transport ma'lumoti yo'q." />
+                <StatusState
+                  title={t("services.transportsEmptyTitle")}
+                  description={t("services.transportsEmptyDescription")}
+                />
               )}
 
               <div className="services-subheading">
-                <h2>Gidlar</h2>
-                <p>Mahalliy gid xizmatlari.</p>
+                <h2>{t("services.guidesSectionTitle")}</h2>
+                <p>{t("services.guidesSectionDescription")}</p>
               </div>
               {tourGuides.length > 0 ? (
                 <>
@@ -257,7 +262,7 @@ function RegionServicesPage() {
                     {visibleGuides.map((item) => (
                       <article className="feature-card" key={`guide-${item.id}`}>
                         <div className="feature-visual" style={buildCardBackground(getPrimaryImage(item))} />
-                        <h3>{item.title || "Gid"}</h3>
+                        <h3>{item.title || t("services.guideFallback")}</h3>
                         <div className="card-meta-list">
                           {buildShortMeta(item).map((meta) => (
                             <p key={`${item.id}-${meta.label}`}>
@@ -273,7 +278,7 @@ function RegionServicesPage() {
                               navigate(`/region/${slug}/services/${type}/${getItemKey(type, { ...item, kind: "guide" })}`)
                             }
                           >
-                            Batafsil
+                            {t("services.details")}
                           </button>
                         </div>
                       </article>
@@ -282,12 +287,14 @@ function RegionServicesPage() {
                   {renderControls(tourGuides.length, guideIndex, setGuideIndex)}
                 </>
               ) : (
-                <StatusState title="Gidlar yo'q" description="Bu viloyat uchun gid ma'lumoti yo'q." />
+                <StatusState title={t("services.guidesEmptyTitle")} description={t("services.guidesEmptyDescription")} />
               )}
             </div>
           )}
 
-          <div className="services-footer-note">Manzil: {location.pathname}</div>
+          <div className="services-footer-note">
+            {t("services.locationLabel")}: {location.pathname}
+          </div>
         </section>
       )}
     </AppShell>

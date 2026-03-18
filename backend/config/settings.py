@@ -134,6 +134,14 @@ REST_FRAMEWORK = {
     ),
 }
 
+JAZZMIN_SETTINGS = {
+    "changeform_format": "horizontal_tabs",
+    "changeform_format_overrides": {
+        "core.tarixiyobida": "single",
+        "users.user": "horizontal_tabs",
+    },
+}
+
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://127.0.0.1:5173",

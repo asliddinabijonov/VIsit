@@ -52,6 +52,30 @@ class TarixiyObidaSerializer(serializers.ModelSerializer):
         model = TarixiyObida
         fields = "__all__"
 
+    def validate(self, attrs):
+        instance = TarixiyObida(**attrs)
+        if self.instance:
+            for field in (
+                "viloyat",
+                "title",
+                "description",
+                "location",
+                "date",
+                "cost",
+                "video",
+                "video_url",
+                "video_poster",
+                "video_type",
+                "video_projection",
+                "stereo_mode",
+                "vr_ready",
+                "video_duration_seconds",
+            ):
+                if field not in attrs:
+                    setattr(instance, field, getattr(self.instance, field))
+        instance.clean()
+        return attrs
+
 
 class RestoranSerializer(serializers.ModelSerializer):
     images_detail = ImageSerializer(source="images", many=True, read_only=True)
@@ -60,6 +84,7 @@ class RestoranSerializer(serializers.ModelSerializer):
     class Meta:
         model = Restoran
         fields = "__all__"
+        read_only_fields = ("user",)
 
 
 class MehmonxonaSerializer(serializers.ModelSerializer):
@@ -69,6 +94,7 @@ class MehmonxonaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Mehmonxona
         fields = "__all__"
+        read_only_fields = ("user",)
 
 
 class TransportSerializer(serializers.ModelSerializer):
@@ -79,12 +105,14 @@ class TransportSerializer(serializers.ModelSerializer):
     class Meta:
         model = Transport
         fields = "__all__"
+        read_only_fields = ("user",)
 
 
 class GidSerializer(serializers.ModelSerializer):
     class Meta:
         model = Gid
         fields = "__all__"
+        read_only_fields = ("user",)
 
 
 class CommentSerializer(serializers.ModelSerializer):
