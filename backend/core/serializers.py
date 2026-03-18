@@ -116,9 +116,29 @@ class GidSerializer(serializers.ModelSerializer):
 
 
 class CommentSerializer(serializers.ModelSerializer):
+    user_name = serializers.CharField(source="user.username", read_only=True)
+    target_label = serializers.CharField(read_only=True)
+
     class Meta:
         model = Comment
         fields = "__all__"
+
+    def validate(self, attrs):
+        instance = Comment(**attrs)
+        if self.instance:
+            for field in (
+                "user",
+                "viloyat",
+                "target_type",
+                "content_type",
+                "object_id",
+                "comment",
+                "rating",
+            ):
+                if field not in attrs:
+                    setattr(instance, field, getattr(self.instance, field))
+        instance.clean()
+        return attrs
 
 
 class TarixiyObidaFullSerializer(TarixiyObidaSerializer):
@@ -138,7 +158,7 @@ class TransportFullSerializer(TransportSerializer):
 
 
 class GidFullSerializer(GidSerializer):
-    comments = CommentSerializer(source="gid_comments", many=True, read_only=True)
+    comments = CommentSerializer(many=True, read_only=True)
 
 
 class ViloyatFullSerializer(serializers.ModelSerializer):

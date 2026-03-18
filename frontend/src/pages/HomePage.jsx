@@ -11,12 +11,22 @@ function HomePage() {
   const { t } = useLanguage();
   const [regions, setRegions] = useState([]);
   const [status, setStatus] = useState("loading");
+  const [authUser, setAuthUser] = useState("");
+  const [activePanel, setActivePanel] = useState("");
 
   useEffect(() => {
     const previousOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
+
+    const syncOverflow = () => {
+      document.body.style.overflow = mediaQuery.matches ? "auto" : "hidden";
+    };
+
+    syncOverflow();
+    mediaQuery.addEventListener("change", syncOverflow);
 
     return () => {
+      mediaQuery.removeEventListener("change", syncOverflow);
       document.body.style.overflow = previousOverflow;
     };
   }, []);
@@ -44,7 +54,75 @@ function HomePage() {
     };
   }, []);
 
+  useEffect(() => {
+    const syncAuthUser = () => {
+      setAuthUser(window.localStorage.getItem("visit-auth-username") || "");
+    };
+
+    syncAuthUser();
+    window.addEventListener("storage", syncAuthUser);
+    window.addEventListener("visit-auth-changed", syncAuthUser);
+
+    return () => {
+      window.removeEventListener("storage", syncAuthUser);
+      window.removeEventListener("visit-auth-changed", syncAuthUser);
+    };
+  }, []);
+
   const orbitRegions = getOrbitRegions(regions);
+  const isAuthenticated = Boolean(authUser);
+
+  const handleHeroAction = (panelKey) => {
+    if (!isAuthenticated) {
+      navigate("/login");
+      return;
+    }
+
+    setActivePanel((current) => (current === panelKey ? "" : panelKey));
+  };
+
+  const homePanels = {
+    explore: {
+      eyebrow: t("home.exploreEyebrow"),
+      title: t("home.exploreTitle"),
+      description: t("home.exploreDescription", { user: authUser }),
+      cards: [
+        {
+          title: t("home.exploreCardOneTitle"),
+          text: t("home.exploreCardOneText"),
+        },
+        {
+          title: t("home.exploreCardTwoTitle"),
+          text: t("home.exploreCardTwoText"),
+        },
+        {
+          title: t("home.exploreCardThreeTitle"),
+          text: t("home.exploreCardThreeText"),
+        },
+      ],
+    },
+    journey: {
+      eyebrow: t("home.journeyEyebrow"),
+      title: t("home.journeyTitle"),
+      description: t("home.journeyDescription", { user: authUser }),
+      cards: [
+        {
+          title: t("home.journeyCardOneTitle"),
+          text: t("home.journeyCardOneText"),
+        },
+        {
+          title: t("home.journeyCardTwoTitle"),
+          text: t("home.journeyCardTwoText"),
+        },
+        {
+          title: t("home.journeyCardThreeTitle"),
+          text: t("home.journeyCardThreeText"),
+        },
+      ],
+    },
+  };
+
+  const activeContent = activePanel ? homePanels[activePanel] : null;
 
   return (
     <AppShell navMode="home">
@@ -88,16 +166,42 @@ function HomePage() {
         {status === "error" && <StatusState title={t("home.errorTitle")} description={t("home.errorDescription")} />}
 
         <div className="hero-actions">
-          <button type="button" className="button button-primary large" onClick={() => navigate("/register")}>
+          <button type="button" className="button button-primary large" onClick={() => handleHeroAction("explore")}>
             {t("home.primaryCta")}
           </button>
-          <button type="button" className="button button-dark large" onClick={() => navigate("/register")}>
+          <button type="button" className="button button-dark large" onClick={() => handleHeroAction("journey")}>
             <span className="play-icon" aria-hidden="true">
               &gt;
             </span>
             {t("home.secondaryCta")}
           </button>
         </div>
+
+        {!isAuthenticated && (
+          <div className="home-auth-note">
+            <strong>{t("home.authRequiredTitle")}</strong>
+            <p>{t("home.authRequiredDescription")}</p>
+          </div>
+        )}
+
+        {isAuthenticated && activeContent && (
+          <section className="home-member-panel">
+            <div className="home-member-head">
+              <p className="eyebrow">{activeContent.eyebrow}</p>
+              <h2>{activeContent.title}</h2>
+              <p>{activeContent.description}</p>
+            </div>
+
+            <div className="home-member-grid">
+              {activeContent.cards.map((card) => (
+                <article className="home-member-card" key={card.title}>
+                  <h3>{card.title}</h3>
+                  <p>{card.text}</p>
+                </article>
+              ))}
+            </div>
+          </section>
+        )}
       </section>
     </AppShell>
   );

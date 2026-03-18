@@ -1,7 +1,9 @@
 from django import forms
 from django.contrib import admin
-from django.urls import path, reverse
+from django.contrib.contenttypes.models import ContentType
+from django.core.exceptions import ValidationError
 from django.http import JsonResponse
+from django.urls import path, reverse
 
 from .models import (
     Comment,
@@ -18,47 +20,96 @@ from .models import (
 )
 
 
+COMMENT_TARGET_MODELS = {
+    Comment.TargetType.RESTORAN: Restoran,
+    Comment.TargetType.MEHMONXONA: Mehmonxona,
+    Comment.TargetType.TRANSPORT: Transport,
+    Comment.TargetType.GID: Gid,
+    Comment.TargetType.TARIXIY_OBIDA: TarixiyObida,
+}
+
+
 class CommentAdminForm(forms.ModelForm):
+    target_object = forms.ChoiceField(label="Obyekt", required=True)
+
     class Meta:
         model = Comment
         fields = "__all__"
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        viloyat_id = None
-        if self.data and self.data.get("viloyat"):
-            viloyat_id = self.data.get("viloyat")
-        elif self.instance and self.instance.viloyat_id:
-            viloyat_id = self.instance.viloyat_id
+        self.fields["content_type"].widget = forms.HiddenInput()
+        self.fields["object_id"].widget = forms.HiddenInput()
+        self.fields["target_type"].choices = [
+            (target_type, label)
+            for target_type, label in self.fields["target_type"].choices
+            if target_type and target_type != Comment.TargetType.VILOYAT
+        ]
 
-        field_models = {
-            "restoran": Restoran,
-            "mehmonxona": Mehmonxona,
-            "transport": Transport,
-            "gid": Gid,
-            "tarixiy_obida": TarixiyObida,
-        }
-        for field_name, model in field_models.items():
-            if field_name in self.fields:
-                if viloyat_id:
-                    self.fields[field_name].queryset = model.objects.filter(
-                        viloyat_id=viloyat_id
-                    )
-                else:
-                    self.fields[field_name].queryset = model.objects.none()
+        viloyat_id = self.data.get("viloyat") or getattr(self.instance, "viloyat_id", None)
+        current_target_type = self.data.get("target_type") or getattr(self.instance, "target_type", "")
+        current_object_id = self.data.get("object_id") or getattr(self.instance, "object_id", "")
+
+        self.fields["target_object"].choices = self._build_target_choices(viloyat_id)
+
+        if current_target_type and current_object_id:
+            self.initial["target_object"] = f"{current_target_type}:{current_object_id}"
+
+    def _build_target_choices(self, viloyat_id):
+        choices = [("", "---------")]
+        for target_type, model in COMMENT_TARGET_MODELS.items():
+            queryset = model.objects.all()
+            if viloyat_id:
+                queryset = queryset.filter(viloyat_id=viloyat_id)
+            choices.extend(
+                (f"{target_type}:{obj.pk}", f"{model._meta.verbose_name.title()}: {obj}")
+                for obj in queryset
+            )
+        return choices
+
+    def clean(self):
+        cleaned_data = super().clean()
+        target_object_value = cleaned_data.get("target_object")
+
+        if not target_object_value:
+            raise ValidationError("Obyekt tanlanishi kerak.")
+
+        try:
+            target_type, target_object_id = target_object_value.split(":", 1)
+        except ValueError as exc:
+            raise ValidationError("Obyekt formati noto'g'ri.") from exc
+
+        model = COMMENT_TARGET_MODELS.get(target_type)
+        if not model:
+            raise ValidationError("Noto'g'ri obyekt turi.")
+
+        try:
+            obj = model.objects.get(pk=target_object_id)
+        except model.DoesNotExist as exc:
+            raise ValidationError("Tanlangan obyekt topilmadi.") from exc
+
+        cleaned_data["target_type"] = target_type
+        cleaned_data["content_type"] = ContentType.objects.get_for_model(model)
+        cleaned_data["object_id"] = obj.pk
+        self.instance.target_type = target_type
+        self.instance.content_type = cleaned_data["content_type"]
+        self.instance.object_id = obj.pk
+        return cleaned_data
 
 
 @admin.register(Comment)
 class CommentAdmin(admin.ModelAdmin):
     form = CommentAdminForm
+    list_display = ("id", "user", "viloyat", "target_type", "target_label", "rating", "created_at")
+    list_filter = ("target_type", "viloyat", "rating", "created_at")
+    search_fields = ("user__username", "comment")
     fields = (
         "user",
         "viloyat",
-        "restoran",
-        "mehmonxona",
-        "transport",
-        "gid",
-        "tarixiy_obida",
+        "target_type",
+        "target_object",
+        "content_type",
+        "object_id",
         "comment",
         "rating",
         "created_at",
@@ -68,64 +119,14 @@ class CommentAdmin(admin.ModelAdmin):
     class Media:
         js = ("core/admin/comment-filter.js",)
 
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        if "viloyat" in form.base_fields:
-            form.base_fields["viloyat"].widget.attrs["data-related-url"] = reverse(
-                "admin:core_comment_related_by_viloyat"
-            )
-        return form
-
     def get_urls(self):
         urls = super().get_urls()
-        custom_urls = [
-            path(
-                "related-by-viloyat/",
-                self.admin_site.admin_view(self.related_by_viloyat),
-                name="core_comment_related_by_viloyat",
-            ),
-        ]
-        return custom_urls + urls
-
-    def related_by_viloyat(self, request):
-        viloyat_id = request.GET.get("viloyat_id")
-        if not viloyat_id:
-            return JsonResponse(
-                {
-                    "restoran": [],
-                    "mehmonxona": [],
-                    "transport": [],
-                    "gid": [],
-                    "tarixiy_obida": [],
-                }
-            )
-
-        data = {
-            "restoran": [
-                {"id": obj.id, "label": str(obj)}
-                for obj in Restoran.objects.filter(viloyat_id=viloyat_id)
-            ],
-            "mehmonxona": [
-                {"id": obj.id, "label": str(obj)}
-                for obj in Mehmonxona.objects.filter(viloyat_id=viloyat_id)
-            ],
-            "transport": [
-                {"id": obj.id, "label": str(obj)}
-                for obj in Transport.objects.filter(viloyat_id=viloyat_id)
-            ],
-            "gid": [
-                {"id": obj.id, "label": str(obj)}
-                for obj in Gid.objects.filter(viloyat_id=viloyat_id)
-            ],
-            "tarixiy_obida": [
-                {"id": obj.id, "label": str(obj)}
-                for obj in TarixiyObida.objects.filter(viloyat_id=viloyat_id)
-            ],
-        }
-        return JsonResponse(data)
+        return urls
 
 
 admin.site.register(Language)
+
+
 @admin.register(Image)
 class ImageAdmin(admin.ModelAdmin):
     list_display = ("id", "title", "image", "used_in")
@@ -144,6 +145,7 @@ class ImageAdmin(admin.ModelAdmin):
         return ", ".join(parts) or "-"
 
     used_in.short_description = "Tegishli obyektlar"
+
 
 admin.site.register(Xususiyat)
 admin.site.register(TransportTur)

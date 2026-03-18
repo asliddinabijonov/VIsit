@@ -1,89 +1,62 @@
-document.addEventListener("DOMContentLoaded", () => {
-  const viloyatField = document.getElementById("id_viloyat");
-  if (!viloyatField) {
+const initCommentFilter = () => {
+  const targetObjectField = document.getElementById("id_target_object");
+  const targetTypeField = document.getElementById("id_target_type");
+  const objectIdField = document.getElementById("id_object_id");
+
+  if (!targetObjectField || !targetTypeField) {
     return;
   }
 
-  const relatedUrl = viloyatField.getAttribute("data-related-url");
-  if (!relatedUrl) {
-    return;
-  }
-
-  const targets = [
-    "restoran",
-    "mehmonxona",
-    "transport",
-    "gid",
-    "tarixiy_obida",
-  ];
-
-  const updateSelect = (select, items) => {
-    const currentValue = select.value;
-    while (select.options.length) {
-      select.remove(0);
-    }
-    const emptyOption = new Option("---------", "");
-    select.add(emptyOption);
-    items.forEach((item) => {
-      const opt = new Option(item.label, item.id);
-      select.add(opt);
-    });
-    if (currentValue) {
-      select.value = currentValue;
-    }
-  };
-
-  const loadRelated = () => {
-    const viloyatId = viloyatField.value;
-    targets.forEach((name) => {
-      const field = document.getElementById(`id_${name}`);
-      if (field) {
-        updateSelect(field, []);
-      }
-    });
-    if (!viloyatId) {
+  const disableSelect2 = (select) => {
+    const djangoJQuery = window.django && window.django.jQuery;
+    if (!djangoJQuery || !djangoJQuery.fn || !djangoJQuery.fn.select2 || !select) {
       return;
     }
-    const url = `${relatedUrl}?viloyat_id=${encodeURIComponent(viloyatId)}`;
-    fetch(url, { credentials: "same-origin" })
-      .then((resp) => resp.json())
-      .then((data) => {
-        targets.forEach((name) => {
-          const field = document.getElementById(`id_${name}`);
-          if (field) {
-            updateSelect(field, data[name] || []);
-          }
-        });
-      })
-      .catch(() => {
-        // Leave empty if fetch fails
-      });
-  };
 
-  viloyatField.addEventListener("change", loadRelated);
-
-  const clearOthers = (activeName) => {
-    targets.forEach((name) => {
-      if (name === activeName) {
-        return;
-      }
-      const field = document.getElementById(`id_${name}`);
-      if (field) {
-        field.value = "";
-      }
+    const $select = djangoJQuery(select);
+    if ($select.hasClass("select2-hidden-accessible")) {
+      $select.select2("destroy");
+    }
+    $select.removeClass("select2-hidden-accessible");
+    $select.css({
+      position: "",
+      width: "",
+      height: "",
+      opacity: "",
+      pointerEvents: "",
     });
+
+    const nextContainer = select.nextElementSibling;
+    if (nextContainer && nextContainer.classList.contains("select2")) {
+      nextContainer.remove();
+    }
   };
 
-  targets.forEach((name) => {
-    const field = document.getElementById(`id_${name}`);
-    if (!field) {
+  const syncFields = () => {
+    const rawValue = targetObjectField.value || "";
+    if (!rawValue.includes(":")) {
+      if (objectIdField) {
+        objectIdField.value = "";
+      }
       return;
     }
-    field.addEventListener("change", () => {
-      if (field.value) {
-        clearOthers(name);
-      }
-    });
-  });
-  loadRelated();
-});
+
+    const [targetType, objectId] = rawValue.split(":", 2);
+    targetTypeField.value = targetType || "";
+    if (objectIdField) {
+      objectIdField.value = objectId || "";
+    }
+  };
+
+  disableSelect2(targetTypeField);
+  disableSelect2(targetObjectField);
+
+  targetObjectField.addEventListener("change", syncFields);
+  syncFields();
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initCommentFilter);
+} else {
+  initCommentFilter();
+}

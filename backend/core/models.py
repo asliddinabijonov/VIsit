@@ -1,4 +1,6 @@
 from django.conf import settings
+from django.contrib.contenttypes.fields import GenericForeignKey, GenericRelation
+from django.contrib.contenttypes.models import ContentType
 from django.db import models
 from django.core.validators import MaxValueValidator, MinValueValidator
 from django.core.exceptions import ValidationError
@@ -39,6 +41,7 @@ class Viloyat(models.Model):
     name = models.CharField(max_length=150)
     title = models.CharField(max_length=255, blank=True, null=True)
     image = models.ImageField(upload_to="viloyatlar/", blank=True, null=True)
+    comments = GenericRelation("Comment", related_query_name="viloyat_target")
 
     def __str__(self):
         return self.name
@@ -70,6 +73,7 @@ class Gid(models.Model):
         blank=True,
         related_name="gidlar",
     )
+    comments = GenericRelation("Comment", related_query_name="gid_target")
 
     def __str__(self):
         return f"Gid: {self.user}"
@@ -134,6 +138,7 @@ class TarixiyObida(models.Model):
     )
     vr_ready = models.BooleanField(default=False)
     video_duration_seconds = models.PositiveIntegerField(blank=True, null=True)
+    comments = GenericRelation("Comment", related_query_name="tarixiy_obida_target")
 
     def __str__(self):
         return self.title
@@ -184,6 +189,7 @@ class Restoran(models.Model):
         blank=True,
         related_name="restoranlar",
     )
+    comments = GenericRelation("Comment", related_query_name="restoran_target")
 
     def __str__(self):
         return self.title
@@ -216,6 +222,7 @@ class Mehmonxona(models.Model):
         blank=True,
         related_name="mehmonxonalar",
     )
+    comments = GenericRelation("Comment", related_query_name="mehmonxona_target")
 
     def __str__(self):
         return self.title
@@ -257,12 +264,21 @@ class Transport(models.Model):
         blank=True,
         related_name="transportlar",
     )
+    comments = GenericRelation("Comment", related_query_name="transport_target")
 
     def __str__(self):
         return self.title
 
 
 class Comment(models.Model):
+    class TargetType(models.TextChoices):
+        VILOYAT = "viloyat", "Viloyat"
+        RESTORAN = "restoran", "Restoran"
+        MEHMONXONA = "mehmonxona", "Mehmonxona"
+        TRANSPORT = "transport", "Transport"
+        GID = "gid", "Gid"
+        TARIXIY_OBIDA = "tarixiy_obida", "Tarixiy obida"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -273,8 +289,25 @@ class Comment(models.Model):
         on_delete=models.CASCADE,
         null=True,
         blank=True,
-        related_name="comments",
+        related_name="scoped_comments",
     )
+    target_type = models.CharField(max_length=30, choices=TargetType.choices, blank=True)
+    content_type = models.ForeignKey(
+        ContentType,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        limit_choices_to=models.Q(app_label="core", model__in=[
+            "viloyat",
+            "restoran",
+            "mehmonxona",
+            "transport",
+            "gid",
+            "tarixiyobida",
+        ]),
+    )
+    object_id = models.PositiveIntegerField(null=True, blank=True)
+    content_object = GenericForeignKey("content_type", "object_id")
     comment = models.TextField()
     rating = models.PositiveSmallIntegerField(
         null=True,
@@ -282,64 +315,38 @@ class Comment(models.Model):
         validators=[MinValueValidator(1), MaxValueValidator(5)],
     )
     created_at = models.DateTimeField(auto_now_add=True)
-    restoran = models.ForeignKey(
-        Restoran,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="comments",
-    )
-    mehmonxona = models.ForeignKey(
-        Mehmonxona,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="comments",
-    )
-    transport = models.ForeignKey(
-        Transport,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="comments",
-    )
-    gid = models.ForeignKey(
-        "Gid",
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="gid_comments",
-    )
-    tarixiy_obida = models.ForeignKey(
-        TarixiyObida,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        related_name="comments",
-    )
 
     def __str__(self):
         return f"Comment #{self.pk}"
 
+    @property
+    def target_label(self):
+        return str(self.content_object) if self.content_object else "-"
+
     def clean(self):
         super().clean()
-        targets = [
-            self.restoran,
-            self.mehmonxona,
-            self.transport,
-            self.gid,
-            self.tarixiy_obida,
-        ]
         if not self.viloyat:
             raise ValidationError("Viloyat tanlanishi kerak.")
-        selected = [target for target in targets if target is not None]
-        if len(selected) != 1:
-            raise ValidationError(
-                "Faqat bitta obyekt tanlanishi kerak (restoran, mehmonxona, "
-                "transport, gid yoki tarixiy obida)."
-            )
 
-        target = selected[0]
+        if not self.content_type_id or not self.object_id:
+            raise ValidationError("Comment uchun obyekt tanlanishi kerak.")
+
+        target = self.content_object
+        if target is None:
+            raise ValidationError("Tanlangan obyekt topilmadi.")
+
+        model_to_type = {
+            Viloyat: self.TargetType.VILOYAT,
+            Restoran: self.TargetType.RESTORAN,
+            Mehmonxona: self.TargetType.MEHMONXONA,
+            Transport: self.TargetType.TRANSPORT,
+            Gid: self.TargetType.GID,
+            TarixiyObida: self.TargetType.TARIXIY_OBIDA,
+        }
+        expected_type = model_to_type.get(type(target))
+        if expected_type != self.target_type:
+            raise ValidationError("Tanlangan obyekt turi noto'g'ri.")
+
         target_viloyat = getattr(target, "viloyat", None)
         if target_viloyat is not None and target_viloyat != self.viloyat:
             raise ValidationError("Tanlangan obyekt viloyatga mos emas.")
